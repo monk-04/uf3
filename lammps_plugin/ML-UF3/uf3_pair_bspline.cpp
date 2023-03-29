@@ -5,6 +5,7 @@
 
 #include "utils.h"
 #include <vector>
+#include <cmath>
 
 using namespace LAMMPS_NS;
 
@@ -14,11 +15,12 @@ uf3_pair_bspline::uf3_pair_bspline() {}
 // Constructor
 // Passing vectors by reference
 uf3_pair_bspline::uf3_pair_bspline(LAMMPS *ulmp, const std::vector<double> &uknot_vect,
-                                   const std::vector<double> &ucoeff_vect)
+                                   const std::vector<double> &ucoeff_vect, double uknot_spacing)
 {
   lmp = ulmp;
   knot_vect = uknot_vect;
   coeff_vect = ucoeff_vect;
+  knot_spacing = uknot_spacing;
 
   knot_vect_size = uknot_vect.size();
   coeff_vect_size = ucoeff_vect.size();
@@ -46,16 +48,17 @@ double *uf3_pair_bspline::eval(double r)
 
   // Find knot starting position
 
-  int start_index;
-  if (knot_vect.front() <= r && r < knot_vect.back()) {
-    //Determine the interval for value_rij
-    for (int i = 3; i < knot_vect_size - 1; ++i) {
-      if (knot_vect[i] <= r && r < knot_vect[i + 1]) {
-        start_index = i;
-        break;
-      }
-    }
-  }
+  int start_index = 3+ (int) floor((r-knot_vect[0])/knot_spacing);
+  //if (knot_vect.front() <= r && r < knot_vect.back()) {
+  //  //Determine the interval for value_rij
+  //  for (int i = 3; i < knot_vect_size - 1; ++i) {
+  //    if (knot_vect[i] <= r && r < knot_vect[i + 1]) {
+  //      start_index = i;
+  //      break;
+  //    }
+  //  }
+  //}
+  //
 
   int knot_affect_start = start_index - 3;
 

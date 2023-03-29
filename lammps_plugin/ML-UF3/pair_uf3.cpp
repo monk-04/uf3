@@ -53,6 +53,8 @@ PairUF3::~PairUF3()
   if (allocated) {
     memory->destroy(setflag);
     memory->destroy(cutsq);
+    memory->destroy(min_cutsq);
+    memory->destroy(knot_spacing);
 
     if (pot_3b) {
       memory->destroy(setflag_3b);
@@ -133,7 +135,7 @@ void PairUF3::coeff(int narg, char **arg)
   }
   for (int i = 1; i < num_of_elements + 1; i++) {
     for (int j = i; j < num_of_elements + 1; j++) {
-      UFBS2b[i][j] = uf3_pair_bspline(lmp, n2b_knot[i][j], n2b_coeff[i][j]);
+      UFBS2b[i][j] = uf3_pair_bspline(lmp, n2b_knot[i][j], n2b_coeff[i][j], knot_spacing[i][j]);
       UFBS2b[j][i] = UFBS2b[i][j];
     }
     if (pot_3b) {
@@ -158,6 +160,12 @@ void PairUF3::allocate()
 
   // Contains info about 2-body cutoff distance for type i and j
   memory->create(cutsq, num_of_elements + 1, num_of_elements + 1, "pair:cutsq");
+
+  // Contains info about 2-body min cutoff distance for type i and j
+  memory->create(min_cutsq, num_of_elements + 1, num_of_elements + 1, "pair:min_cutsq");
+
+  // Contains info about knot spacing for 2-body
+  memory->create(knot_spacing, num_of_elements + 1, num_of_elements + 1, "pair:knot_spacing");
 
   // Contains knot_vect of 2-body potential for type i and j
   n2b_knot.resize(num_of_elements + 1);
@@ -233,7 +241,7 @@ void PairUF3::uf3_read_pot_file(char *potf_name)
   temp_line = txtfilereader.next_line(1);
   Tokenizer fp2nd_line(temp_line);
   if (fp2nd_line.contains("2B") == 1) {
-    temp_line = txtfilereader.next_line(4);
+    temp_line = txtfilereader.next_line(5);
     ValueTokenizer fp3rd_line(temp_line);
     int temp_type1 = fp3rd_line.next_int();
     int temp_type2 = fp3rd_line.next_int();
@@ -247,6 +255,9 @@ void PairUF3::uf3_read_pot_file(char *potf_name)
 
     int temp_line_len = fp3rd_line.next_int();
 
+    knot_spacing[temp_type1][temp_type2] = fp3rd_line.next_double();
+    knot_spacing[temp_type2][temp_type1] = knot_spacing[temp_type1][temp_type2];
+
     temp_line = txtfilereader.next_line(temp_line_len);
     ValueTokenizer fp4th_line(temp_line);
 
@@ -256,6 +267,9 @@ void PairUF3::uf3_read_pot_file(char *potf_name)
       n2b_knot[temp_type1][temp_type2][k] = fp4th_line.next_double();
       n2b_knot[temp_type2][temp_type1][k] = n2b_knot[temp_type1][temp_type2][k];
     }
+
+    min_cutsq[temp_type1][temp_type2] = pow(n2b_knot[temp_type1][temp_type2][0], 2);
+    min_cutsq[temp_type2][temp_type1] = min_cutsq[temp_type1][temp_type2];
 
     temp_line = txtfilereader.next_line(1);
     ValueTokenizer fp5th_line(temp_line);
@@ -490,7 +504,7 @@ void PairUF3::compute(int eflag, int vflag)
 
       rsq = delx * delx + dely * dely + delz * delz;
       jtype = type[j];
-      if (rsq < cutsq[itype][jtype]) {
+      if ((min_cutsq[itype][jtype] <= rsq) && (rsq < cutsq[itype][jtype])) {
         rij = sqrt(rsq);
 
         if (pot_3b) {

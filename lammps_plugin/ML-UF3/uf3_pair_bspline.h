@@ -29,6 +29,7 @@ namespace LAMMPS_NS {
 class uf3_pair_bspline {
  private:
   int knot_vect_size, coeff_vect_size;
+  double knot_spacing;
   std::vector<double> knot_vect, dnknot_vect;
   std::vector<double> coeff_vect, dncoeff_vect;
   std::vector<uf3_bspline_basis3> bspline_bases;
@@ -39,7 +40,7 @@ class uf3_pair_bspline {
   // dummy constructor
   uf3_pair_bspline();
   uf3_pair_bspline(LAMMPS *ulmp, const std::vector<double> &uknot_vect,
-                   const std::vector<double> &ucoeff_vect);
+                   const std::vector<double> &ucoeff_vect, double uknot_spacing);
   ~uf3_pair_bspline();
   double ret_val[2];
   double *eval(double value_rij);

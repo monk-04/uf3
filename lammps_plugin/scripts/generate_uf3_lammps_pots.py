@@ -112,7 +112,11 @@ def write_uf3_lammps_pot_files(chemical_sys,model,pot_dir):
                 element_map[interaction[1]])
 
         files[key] += str(model.bspline_config.r_max_map[interaction]) + " " + \
-                str(len(model.bspline_config.knots_map[interaction]))+"\n"
+                str(len(model.bspline_config.knots_map[interaction]))+" "
+
+        knot_spacing = model.bspline_config.knots_map[interaction][4] - \
+                model.bspline_config.knots_map[interaction][3]
+        files[key] += str(knot_spacing)+"\n"
 
         files[key] += " ".join(['{:.17g}'.format(v) for v in \
                 model.bspline_config.knots_map[interaction]]) + "\n"

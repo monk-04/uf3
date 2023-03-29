@@ -16,9 +16,23 @@ In the following tables performance of the current implementation is given.
     * - LJ
       - 6513.272
     * - UF2
-      - 1163.371
+      - 1163.371 (945.194)
+    * - UF2 (uniform grid)
+      - 925.556 
     * - UF3
       - 226.488
+
+.. list-table:: Nb3Sn 3x3x3 supercell- 512 atoms, 1fs timestep, 1 core
+    :header-rows: 1
+
+    * - Potential
+      - Speed (timestep/s)
+    * - LJ
+      - 2283.963
+    * - UF2
+      - 265.356
+    * - UF2 (uniform grid)
+      - 324.710
 
 .. list-table:: Nb3Sn 4x4x4 supercell- 512 atoms, 1fs timestep, 1 core
     :header-rows: 1
@@ -29,9 +43,10 @@ In the following tables performance of the current implementation is given.
       - 960.561
     * - UF2
       - 115.658
+    * - UF2 (uniform grid)
+      - 137.879
     * - UF3
       - 28.214
-
 
 .. list-table:: Performance of UF3 with system size, 1fs timestep, 1 core
     :header-rows: 1

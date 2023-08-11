@@ -1065,6 +1065,122 @@ def featurize_force_2B(basis_functions,
     return x
 
 
+def evaluate_basis_functions_w_magnetism(points,
+                                         mag_points,
+                                         mag_type,
+                                         basis_functions,
+                                         nu=0,
+                                         n_lead=0,
+                                         n_trail=0,
+                                         flatten=True):
+    n_splines = len(basis_functions)
+    values_per_spline = [0] * n_splines
+    for idx in range(n_lead, n_splines - n_trail):
+        # loop over number of basis functions
+        bspline_values = basis_functions[idx](points, nu=nu)
+        bspline_values[np.isnan(bspline_values)] = 0
+        values_per_spline[idx] = bspline_values
+        if len(values_per_spline[idx]) != len(mag_points): 
+            print('Distance_map and magmom_map not matching!')
+            break
+        else:
+            for k in range(len(mag_points)):
+                m_i = np.asarray(mag_points[k])[0]
+                m_j = np.asarray(mag_points[k])[1]
+                if str(mag_type) == 'exchange':
+                    values_per_spline[idx][k] = values_per_spline[idx][k]*m_i*m_j
+                elif str(mag_type) == 'self_quadratic':
+                    values_per_spline[idx][k] = values_per_spline[idx][k]*m_i**2
+                elif str(mag_type) == 'self_biquadratic':
+                    values_per_spline[idx][k] = values_per_spline[idx][k]*m_i**4
+                else:
+                    print('Wrong magnetic term requested!')
+    if not flatten:
+        return values_per_spline
+    value_per_spline = np.array([np.sum(values) for values in values_per_spline])
+    return value_per_spline
+
+
+def evaluate_force_2B_w_magnetism_ma(points,
+                                     mag_points,
+                                     mag_type,
+                                     basis_functions,
+                                     nu=0,
+                                     n_lead=0,
+                                     n_trail=0,
+                                     flatten=True):
+    n_splines = len(basis_functions)
+    values_per_spline = [0] * n_splines
+    for idx in range(n_lead, n_splines - n_trail):
+        # loop over number of basis functions
+        bspline_values = basis_functions[idx](points, nu=nu)
+        bspline_values[np.isnan(bspline_values)] = 0
+        values_per_spline[idx] = bspline_values
+        if len(values_per_spline[idx]) != len(mag_points): 
+            print('Distance_map and magmom_map not matching!')
+            break
+        else:
+            for k in range(len(mag_points)):
+                m_i = np.asarray(mag_points[k])[0]
+                m_j = np.asarray(mag_points[k])[1]
+                if str(mag_type) == 'exchange':
+                    values_per_spline[idx][k] = values_per_spline[idx][k]*m_j
+                elif str(mag_type) == 'self_quadratic':
+                    values_per_spline[idx][k] = values_per_spline[idx][k]*2*m_i
+                elif str(mag_type) == 'self_biquadratic':
+                    values_per_spline[idx][k] = values_per_spline[idx][k]*4*m_i**3
+                else:
+                    print('Wrong magnetic term requested!')
+    if not flatten:
+        return values_per_spline
+    value_per_spline = np.array([np.sum(values) for values in values_per_spline])
+    return value_per_spline
+
+
+def featurize_force_2B_w_magnetism_ra(basis_functions,
+                                      distances,
+                                      drij_dR,
+                                      mag_type,
+                                      mag_points,
+                                      knot_sequence,
+                                      n_lead=0,
+                                      n_trail=0,
+                                     ):
+
+    n_splines = len(basis_functions)
+    n_atoms, _, n_distances = drij_dR.shape
+    x = np.zeros((n_atoms, 3, n_splines))
+    if n_distances != len(mag_points):
+        raise ValueError('Distance_map and magmom_map not matching!')
+    else:
+        for bspline_idx in np.arange(n_lead, n_splines - n_trail):
+            # loop over number of basis functions
+            basis_function = basis_functions[bspline_idx]
+            b_knots = knot_sequence[bspline_idx: bspline_idx+5]
+            mask = np.logical_and(distances > b_knots[0],
+                                  distances < b_knots[-1])
+            # first derivative
+            bspline_values = basis_function(distances[mask], nu=1)
+            # mask position deltas by distances
+            deltas = drij_dR[:, :, mask]
+            x_splines = np.multiply(bspline_values, deltas)
+            x_splines = np.sum(x_splines, axis=-1)
+            for k in range(len(mag_points)):
+                m_i = np.asarray(mag_points[k])[0]
+                m_j = np.asarray(mag_points[k])[1]
+                if str(mag_type) == 'exchange':
+                    x_splines[k] = x_splines[k]*m_i*m_j
+                elif str(mag_type) == 'self_quadratic':
+                    x_splines[k] = x_splines[k]*m_i**2
+                elif str(mag_type) == 'self_biquadratic':
+                    x_splines[k] = x_splines[k]*m_i**4
+                else:
+                    print('Wrong magnetic term requested!')
+            x[:, :, bspline_idx] = x_splines
+        x = -x
+        return x              
+
+
 def fit_spline_1d(x, y, knot_sequence):
     """
     Utility function for fitting spline coefficients to a sampled 1D function.
